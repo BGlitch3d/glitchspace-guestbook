@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Glitch's Friend Space</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 4px;
+      background: #180c20;
+      color: #eeeeee;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    /* FRIEND COUNT */
+
+    .friend-count {
+      margin: 5px 0 2px;
+      color: #ffffff;
+    }
+
+    .friend-count strong {
+      color: #ff64ce;
+    }
+
+    .comment-count {
+      color: #aaa;
+      font-size: 11px;
+      margin: 0 0 8px;
+    }
+
+
+    /* COMMENTS */
+
+    .comment {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px dashed #75468a;
+      padding: 10px 0;
+    }
+
+    .comment-avatar {
+      width: 55px;
+      height: 55px;
+      min-width: 55px;
+      background: #000000;
+      border: 2px solid #a347c4;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 25px;
+    }
+
+    .comment-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .comment-name {
+      color: #ff72d8;
+      font-weight: bold;
+    }
+
+    .comment-date {
+      color: #888;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .comment-body p {
+      margin: 6px 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+
+    /* LOADING / EMPTY */
+
+    .guestbook-loading,
+    .guestbook-empty,
+    .guestbook-error {
+      text-align: center;
+      color: #c99ce8;
+      font-style: italic;
+      padding: 12px;
+    }
+
+
+    /* FORM */
+
+    .guestbook-form {
+      margin-top: 15px;
+      padding: 12px;
+      background: #0d0712;
+      border: 1px dashed #ff64ce;
+    }
+
+    .guestbook-title {
+      color: #aaff67;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .guestbook-form label {
+      display: block;
+      color: #ff64ce;
+      font-size: 12px;
+      font-weight: bold;
+      margin: 8px 0 4px;
+    }
+
+    .guestbook-form input,
+    .guestbook-form textarea {
+      display: block;
+      width: 100%;
+      background: #000;
+      color: #ffffff;
+      border: 1px solid #7d3a91;
+      padding: 7px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .guestbook-form textarea {
+      height: 80px;
+      resize: vertical;
+    }
+
+    .guestbook-form input:focus,
+    .guestbook-form textarea:focus {
+      outline: none;
+      border-color: #aaff67;
+    }
+
+    .character-limit {
+      text-align: right;
+      color: #777;
+      font-size: 10px;
+      margin-top: 3px;
+    }
+
+    .guestbook-button {
+      margin-top: 10px;
+      padding: 7px 12px;
+      background: #ff64ce;
+      color: #000;
+      border: 2px solid #aaff67;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .guestbook-button:hover {
+      background: #aaff67;
+      border-color: #ff64ce;
+    }
+
+    .guestbook-button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    #guestbook-message {
+      min-height: 15px;
+      margin-top: 10px;
+      color: #aaff67;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .guestbook-note {
+      margin-top: 8px;
+      text-align: center;
+      color: #9b72b5;
+      font-size: 10px;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <p class="friend-count">
+    Glitch has <strong>666 friends.</strong>
+  </p>
+
+  <p class="comment-count" id="comment-count">
+    Loading comments...
+  </p>
+
+
+  <!-- COMMENTS LOAD HERE -->
+
+  <div id="guestbook-comments">
+
+    <p class="guestbook-loading">
+      Loading comments from the void... ✦
+    </p>
+
+  </div>
+
+
+  <!-- COMMENT FORM -->
+
+  <div class="guestbook-form">
+
+    <div class="guestbook-title">
+      Leave Glitch a Comment
+    </div>
+
+    <label for="guest-name">
+      Display Name:
+    </label>
+
+    <input
+      type="text"
+      id="guest-name"
+      maxlength="30"
+      placeholder="ur cool screenname"
+    >
+
+
+    <label for="guest-comment">
+      Comment:
+    </label>
+
+    <textarea
+      id="guest-comment"
+      maxlength="300"
+      placeholder="thanks 4 the add!!!"
+    ></textarea>
+
+    <div class="character-limit" id="character-count">
+      0 / 300
+    </div>
+
+
+    <button
+      type="button"
+      class="guestbook-button"
+      id="guestbook-submit"
+    >
+      💌 POST COMMENT
+    </button>
+
+    <div id="guestbook-message"></div>
+
+    <div class="guestbook-note">
+      ✦ Be cool or get deleted. &lt;3 ✦
+    </div>
+
+  </div>
+
+
+<script>
+
+const SUPABASE_URL =
+  "https://byuvbkwbvbeovwfoqltz.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_p2nopx-b7Ww2t4A2j-mk4Q_qKQWbrKL";
+
+
+const commentsContainer =
+  document.getElementById("guestbook-comments");
+
+const commentCount =
+  document.getElementById("comment-count");
+
+const submitButton =
+  document.getElementById("guestbook-submit");
+
+const messageBox =
+  document.getElementById("guestbook-message");
+
+const nameInput =
+  document.getElementById("guest-name");
+
+const commentInput =
+  document.getElementById("guest-comment");
+
+const characterCount =
+  document.getElementById("character-count");
+
+
+/* CHARACTER COUNTER */
+
+commentInput.addEventListener("input", function () {
+
+  characterCount.textContent =
+    commentInput.value.length + " / 300";
+
+});
+
+
+/* AVATARS */
+
+const avatars = [
+  "💀",
+  "👻",
+  "🐝",
+  "🦇",
+  "🔮",
+  "🕷️",
+  "🌙",
+  "🖤"
+];
+
+function getAvatar(id) {
+
+  const number = Number(id) || 0;
+
+  return avatars[number % avatars.length];
+
+}
+
+
+/* LOAD COMMENTS */
+
+async function loadComments() {
+
+  commentCount.textContent =
+    "Loading comments...";
+
+  commentsContainer.replaceChildren();
+
+  const loading =
+    document.createElement("p");
+
+  loading.className =
+    "guestbook-loading";
+
+  loading.textContent =
+    "Loading comments from the void... ✦";
+
+  commentsContainer.appendChild(loading);
+
+
+  try {
+
+    const response = await fetch(
+      SUPABASE_URL +
+      "/rest/v1/guestbook" +
+      "?select=id,name,comment,created_at" +
+      "&order=created_at.desc" +
+      "&limit=8",
+      {
+        headers: {
+          "apikey": SUPABASE_KEY
+        }
+      }
+    );
+
+
+    if (!response.ok) {
+
+      const errorText =
+        await response.text();
+
+      throw new Error(errorText);
+
+    }
+
+
+    const comments =
+      await response.json();
+
+
+    commentsContainer.replaceChildren();
+
+
+    if (comments.length === 0) {
+
+      const empty =
+        document.createElement("p");
+
+      empty.className =
+        "guestbook-empty";
+
+      empty.textContent =
+        "No comments yet... be the first to leave some chaos. 💜";
+
+      commentsContainer.appendChild(empty);
+
+      commentCount.textContent =
+        "No comments yet";
+
+      return;
+
+    }
+
+
+    commentCount.textContent =
+      "Displaying " +
+      comments.length +
+      " newest comment" +
+      (comments.length === 1 ? "" : "s");
+
+
+    comments.forEach(function(entry) {
+
+      const commentElement =
+        document.createElement("div");
+
+      commentElement.className =
+        "comment";
+
+
+      const avatar =
+        document.createElement("div");
+
+      avatar.className =
+        "comment-avatar";
+
+      avatar.textContent =
+        getAvatar(entry.id);
+
+
+      const body =
+        document.createElement("div");
+
+      body.className =
+        "comment-body";
+
+
+      const name =
+        document.createElement("div");
+
+      name.className =
+        "comment-name";
+
+      name.textContent =
+        entry.name;
+
+
+      const date =
+        document.createElement("div");
+
+      date.className =
+        "comment-date";
+
+      date.textContent =
+        new Date(entry.created_at)
+        .toLocaleDateString(
+          undefined,
+          {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          }
+        );
+
+
+      const comment =
+        document.createElement("p");
+
+      /*
+        IMPORTANT:
+        textContent prevents visitor comments
+        from being interpreted as HTML.
+      */
+
+      comment.textContent =
+        entry.comment;
+
+
+      body.appendChild(name);
+      body.appendChild(date);
+      body.appendChild(comment);
+
+      commentElement.appendChild(avatar);
+      commentElement.appendChild(body);
+
+      commentsContainer.appendChild(
+        commentElement
+      );
+
+    });
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    commentsContainer.replaceChildren();
+
+    const errorMessage =
+      document.createElement("p");
+
+    errorMessage.className =
+      "guestbook-error";
+
+    errorMessage.textContent =
+      "The guestbook got lost in the void. 💀";
+
+    commentsContainer.appendChild(
+      errorMessage
+    );
+
+    commentCount.textContent =
+      "Unable to load comments";
+
+  }
+
+}
+
+
+/* POST COMMENT */
+
+async function postComment() {
+
+  const name =
+    nameInput.value.trim();
+
+  const comment =
+    commentInput.value.trim();
+
+
+  messageBox.textContent = "";
+
+
+  if (!name || !comment) {
+
+    messageBox.textContent =
+      "✦ Please enter your name and a comment.";
+
+    return;
+
+  }
+
+
+  if (
+    name.length > 30 ||
+    comment.length > 300
+  ) {
+
+    messageBox.textContent =
+      "✦ Your comment is a little too chaotic.";
+
+    return;
+
+  }
+
+
+  submitButton.disabled = true;
+
+  submitButton.textContent =
+    "POSTING...";
+
+
+  try {
+
+    const response = await fetch(
+      SUPABASE_URL +
+      "/rest/v1/guestbook",
+      {
+        method: "POST",
+
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Content-Type":
+            "application/json",
+          "Prefer":
+            "return=minimal"
+        },
+
+        body: JSON.stringify({
+          name: name,
+          comment: comment
+        })
+      }
+    );
+
+
+    if (!response.ok) {
+
+      const errorText =
+        await response.text();
+
+      throw new Error(errorText);
+
+    }
+
+
+    nameInput.value = "";
+    commentInput.value = "";
+
+    characterCount.textContent =
+      "0 / 300";
+
+    messageBox.textContent =
+      "💜 Comment posted! Thanks 4 the add.";
+
+    await loadComments();
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    messageBox.textContent =
+      "💀 Something went wrong. Try again.";
+
+  }
+
+
+  submitButton.disabled = false;
+
+  submitButton.textContent =
+    "💌 POST COMMENT";
+
+}
+
+
+/* BUTTON */
+
+submitButton.addEventListener(
+  "click",
+  postComment
+);
+
+
+/* LOAD WHEN PAGE OPENS */
+
+loadComments();
+
+</script>
+
+</body>
+</html>
